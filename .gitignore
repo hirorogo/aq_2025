@@ -124,3 +124,8 @@ janken/janken/smart_optimization_*/
 janken/janken/smart_search_*/
 janken/janken/auto_experiments_*/
 janken/janken/comprehensive_experiments_*/
+.history/
+.img_test/
+.img_train/
+img_test
+img_train
