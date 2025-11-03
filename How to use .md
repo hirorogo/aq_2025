@@ -55,25 +55,70 @@ python3 --version
 cd /Users/hiro/Documents/aq_2025
 ```
 
-### 4. 必要なライブラリのインストール
+### 4. 仮想環境の作成（推奨）
 
+**仮想環境とは：** プロジェクト専用のPython環境を作成して、他のプロジェクトとライブラリが混ざらないようにする仕組みです。
+
+仮想環境を作成：
 ```bash
-pip3 install -r requirements.txt
+python3 -m venv venv
 ```
 
-**注意：** エラーが出た場合は以下を試してください：
+仮想環境を有効化（毎回プロジェクトを使用する前に実行）：
 ```bash
-python3 -m pip install --upgrade pip
-pip3 install -r requirements.txt
+source venv/bin/activate
 ```
 
-### 5. フォルダ構造の作成
+### 5. 必要なライブラリのインストール
+
+**重要：** 仮想環境を有効化した状態で実行してください。
+
+```bash
+pip install --only-binary=all numpy matplotlib pillow scikit-learn tensorflow keras opencv-python seaborn pandas
+```
+
+**プリコンパイル済みwheelファイルを使用する理由：**
+- Python 3.13では一部のライブラリでビルドエラーが発生する可能性があるため
+- プリコンパイル済みのファイルを使用することで、安全にインストールできます
+
+**ライブラリが正常にインストールされたか確認：**
+```bash
+python -c "import numpy; import matplotlib; from PIL import Image; import sklearn; import tensorflow; import keras; import cv2; import seaborn; import pandas; print('✅ 全てのライブラリが正常にインストールされました！')"
+```
+
+### 6. フォルダ構造の作成
 
 必要なフォルダが存在しない場合は作成：
 ```bash
 mkdir -p models img_train/0_gu img_train/1_tyoki img_train/2_pa
 mkdir -p img_test/0_gu img_test/1_tyoki img_test/2_pa
 mkdir -p dataset
+```
+
+## 🔄 プロジェクトの開始方法（毎回実行）
+
+プロジェクトを使用する際は、毎回以下の手順を実行してください：
+
+### 1. プロジェクトフォルダに移動
+```bash
+cd /Users/hiro/Documents/aq_2025
+```
+
+### 2. 仮想環境を有効化
+```bash
+source venv/bin/activate
+```
+
+### 3. 仮想環境が有効化されているか確認
+ターミナルのプロンプトが `(venv)` で始まっていれば正常に有効化されています：
+```bash
+(venv) hiro@hironoMacBook-Air aq_2025 %
+```
+
+### 4. プロジェクトの終了
+プロジェクトを終了する際は、仮想環境を無効化してください：
+```bash
+deactivate
 ```
 
 ## 📸 画像データの準備
@@ -104,6 +149,11 @@ mkdir -p dataset
 ## 🤖 AIの学習方法
 
 ### 1. 学習の実行
+
+**重要：** 学習を実行する前に、必ず仮想環境を有効化してください：
+```bash
+source venv/bin/activate
+```
 
 画像データを準備したら、以下のコマンドでAIの学習を開始：
 
@@ -199,10 +249,13 @@ python3 janken_predict.py --folder img_test/
 
 #### 1. `ModuleNotFoundError: No module named 'tensorflow'`
 
-**原因：** TensorFlowがインストールされていない
+**原因：** TensorFlowがインストールされていない、または仮想環境が有効化されていない
 **解決方法：**
 ```bash
-pip3 install tensorflow
+# 仮想環境を有効化
+source venv/bin/activate
+# ライブラリを再インストール
+pip install tensorflow
 ```
 
 #### 2. `FileNotFoundError: No such file or directory`
@@ -225,6 +278,13 @@ pip3 install tensorflow
 **解決方法：**
 - 他のアプリケーションを閉じる
 - バッチサイズを小さくする（コード内で調整）
+
+#### 5. Python 3.13での互換性エラー
+
+**原因：** 一部のライブラリがPython 3.13にまだ完全対応していない
+**解決方法：**
+- 仮想環境を使用する
+- プリコンパイル済みwheelファイルを使用する（上記のインストール方法に従う）
 
 ### パフォーマンス向上のコツ
 
