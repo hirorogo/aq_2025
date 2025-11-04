@@ -1,51 +1,77 @@
 import os
+import ssl
 import tensorflow as tf
 import numpy as np
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix, classification_report
-from janken_train import target_size
-from janken_train import batch_size
-from janken_train import preprocessing_function
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+
+# SSL証明書の問題を回避
+ssl._create_default_https_context = ssl._create_unverified_context
+
+# 設定（janken_train_new_safe.pyと同じ値）
+target_size = 224
+batch_size = 8
+
+def preprocessing_function(x):
+    """MobileNetV2用の前処理関数"""
+    return tf.keras.applications.mobilenet_v2.preprocess_input(x)
 
 
 def main():
-    # 評価用データセット作成
-    test_ds = tf.keras.utils.image_dataset_from_directory(
+    # GPU設定
+    try:
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+    except Exception as e:
+        print(f"GPU設定エラー: {e}")
+
+    # 評価用データセット作成（ImageDataGeneratorを使用）
+    test_datagen = ImageDataGenerator(
+        preprocessing_function=preprocessing_function
+    )
+    
+    test_generator = test_datagen.flow_from_directory(
         "img_test",
-        image_size=(target_size, target_size),
+        target_size=(target_size, target_size),
         batch_size=batch_size,
-        label_mode="categorical",
+        class_mode='categorical',
         shuffle=False
     )
     
     # クラス名を取得
-    class_names = test_ds.class_names
+    class_names = list(test_generator.class_indices.keys())
     print(f"クラス名: {class_names}")
     
-    # プリプロセッシングを適用
-    test_ds_processed = test_ds.map(
-        lambda x, y: (preprocessing_function(x), y),
-        num_parallel_calls=tf.data.AUTOTUNE
-    )
-    test_ds_processed = test_ds_processed.prefetch(tf.data.AUTOTUNE)
-
     # 正解ラベルを取得
-    true_labels = []
-    for _, labels in test_ds:
-        true_labels.extend(np.argmax(labels.numpy(), axis=1))
-    true_labels = np.array(true_labels)
+    true_labels = test_generator.classes
 
-    # 学習済みモデルロード（.kerasを優先、なければ.h5）
-    if os.path.exists("model.keras"):
-        model = tf.keras.models.load_model("model.keras")
-        print("model.kerasを読み込みました")
-    elif os.path.exists("model.h5"):
-        model = tf.keras.models.load_model("model.h5")
-        print("model.h5を読み込みました")
-    else:
+    # 学習済みモデルロード（modelsディレクトリも確認）
+    model_paths = [
+        "models/janken_model_safe.keras",
+        "models/janken_model_safe.h5", 
+        "model.keras",
+        "model.h5"
+    ]
+    
+    model = None
+    for model_path in model_paths:
+        if os.path.exists(model_path):
+            try:
+                model = tf.keras.models.load_model(model_path)
+                print(f"{model_path}を読み込みました")
+                break
+            except Exception as e:
+                print(f"{model_path}読み込みエラー: {e}")
+                continue
+    
+    if model is None:
         raise FileNotFoundError("モデルファイルが見つかりません")
 
     # 予測実施
-    pred_confidence = model.predict(test_ds_processed)
+    test_generator.reset()
+    pred_confidence = model.predict(test_generator, verbose=1)
     pred_class = np.argmax(pred_confidence, axis=1)
 
     # 予測結果ファイル出力
